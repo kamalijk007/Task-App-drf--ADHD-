@@ -1,0 +1,147 @@
+<Doctype html>
+    <html>
+        <head>
+            <title>
+                
+            </title>
+            <script>
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            // Does this cookie string begin with the name we want?
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+
+                async function loadHabits() {
+                    const response = await fetch('/tracker/habits/');
+                    const habits = await response.json();
+                    
+                    const listElement = document.getElementById('habit-list');
+
+                    listElement.innerHTML = '';
+
+                    habits.forEach(habit => {
+                        const li = document.createElement('li');
+
+                        li.innerHTML = `
+                        <div style="padding-right: 20px;">
+                            <strong>${habit.name}</strong> - 
+                            <span>${habit.description || "No Description Provided"}</span>
+                        </div>`;
+                        listElement.appendChild(li)
+
+                        const doneBtn = document.createElement('button');
+                        doneBtn.textContent = 'Done';
+                        doneBtn.onclick = () => alert(`You finisned ${habit.name} for today!`);
+                        li.appendChild(doneBtn);
+                    });
+                }
+                loadHabits()
+                async function createHabit() {
+                const nameInput = document.getElementById('habit-name');
+                const descInput = document.getElementById('habit-desc');
+                
+                // Get the token using our helper function
+                const csrftoken = getCookie('csrftoken');
+
+                const response = await fetch('/tracker/habits/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken, // This is the secret handshake! 🤝
+                    },
+                    body: JSON.stringify({
+                        name: nameInput.value,
+                        description: descInput.value
+                    })
+                });
+
+                if (response.ok) {
+                    console.log("Habit created successfully!");
+                    nameInput.value = '';
+                    descInput.value = '';
+
+                    await loadHabits();
+                } else {
+                    const errorData = await json.response();
+                    console.error("Server says What???", errorData)
+                }
+            }
+            </script>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background-color: #f4f7f6;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 40px;
+                }
+                #habit-list {
+                    list-style: none; /* Removes the bullet points */
+                    padding: 0;
+                    width: 100%;
+                    max-width: 400px;
+                }
+                li {
+                background: white;
+                margin-bottom: 15px;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                border-left: 5px solid #4CAF50;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                cursor: pointer;
+                display: flex; /* Enables Flexbox */
+                justify-content: space-between; /* Pushes content to opposite ends */
+                align-items: center;
+                    }
+
+                li:hover {
+                    /* Step 2: Define what happens on hover */
+                    transform: translateY(-5px); /* Moves it up 5 pixels */
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* Deepens the shadow */
+                }
+                button {
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    padding: 10px 18px;
+                    border-radius: 25px; /* Makes it a pill shape */
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.3s ease, transform 0.1s;
+                }
+
+                button:hover {
+                    background-color: #45a049;
+                    transform: scale(1.05); /* Slightly grows the button */
+                }
+
+                button:active {
+                    transform: scale(0.95); /* Shrinks when clicked for a "pushed" feel */
+                }
+            </style>
+        </head>
+        <body>
+            <h1>My Habit Tracker</h1>
+            <ul id="habit-list">
+            </ul>
+            <div id="add-habit-form">
+                <h2>Add a New Habit</h2>
+                <input type="text" placeholder="habit name (e.g , Meditation)" id="habit-name">
+                <input type="text" id="habit-desc" placeholder="Description (e.g, Stretch )">
+                <button onclick="createHabit()">Add Habit</button>
+            </div>
+            {% csrf_token %}
+        </body>
+    </html>
