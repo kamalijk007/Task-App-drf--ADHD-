@@ -4,9 +4,10 @@ from datetime import date
 
 class HabitSerializer(serializers.ModelSerializer):
     owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    is_done_today = serializers.BooleanField(read_only=True)
     class Meta:
         model = HabitModel
-        fields = ['owner','name','created','description']
+        fields = ['id','owner','name','created','description','is_done_today']
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=HabitModel.objects.all(),
@@ -22,7 +23,7 @@ class DailyRecordSerializer(serializers.ModelSerializer):
     class Meta:
         read_only_fields = ['date']
         model = DailyRecordModel
-        fields = ['record','date','completed','owner']
+        fields = ['id','record','date','completed','owner']
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=DailyRecordModel.objects.all(),

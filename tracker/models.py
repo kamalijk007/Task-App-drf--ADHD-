@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+
+from django.utils import timezone
 # Create your models here.
 
 class HabitModel(models.Model):
@@ -7,6 +9,10 @@ class HabitModel(models.Model):
     description = models.TextField(null=True, max_length=999)
     created = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    @property
+    def is_done_today(self):
+        return self.dailyrecordmodel_set.filter(date=timezone.now().date()).exists()
 
     def __str__(self):
         return self.name

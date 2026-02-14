@@ -1,147 +1,185 @@
-<Doctype html>
-    <html>
-        <head>
-            <title>
-                
-            </title>
-            <script>
-                function getCookie(name) {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            // Does this cookie string begin with the name we want?
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Habit Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
                     }
-                    return cookieValue;
+                }
+            }
+            return cookieValue;
+        }
+
+        async function loadHabits() {
+            const response = await fetch('/tracker/habits/');
+            const habits = await response.json();
+            const listElement = document.getElementById('habit-list');
+            listElement.innerHTML = '';
+
+            habits.forEach(habit => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div style="padding-right: 20px;">
+                        <strong>${habit.name}</strong> - 
+                        <span>${habit.description || "No Description Provided"}</span>
+                    </div>`;
+
+                const doneBtn = document.createElement('button');
+                if (habit.is_done_today) {
+                    li.classList.add('habit-card-done');
+                    doneBtn.textContent = '✅ Completed';
+                    doneBtn.classList.add('btn-completed');
+                    doneBtn.disabled = true;
+                } else {
+                    doneBtn.textContent = 'Done';
+                    doneBtn.onclick = (e) => markHabitDone(habit.id, e.target);
                 }
 
-                async function loadHabits() {
-                    const response = await fetch('/tracker/habits/');
-                    const habits = await response.json();
-                    
-                    const listElement = document.getElementById('habit-list');
+                li.appendChild(doneBtn);
+                listElement.appendChild(li);
 
-                    listElement.innerHTML = '';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '🗑️'; // Or "Delete"
+                deleteBtn.className = 'delete-btn'; // We'll style this in a second
+                deleteBtn.onclick = () => deleteHabit(habit.id);
 
-                    habits.forEach(habit => {
-                        const li = document.createElement('li');
+                li.appendChild(deleteBtn);
+            });
+            const totalHabits = habits.length;
+            const completedHabits = habits.filter(h => h.is_done_today).length;
+            const percentage = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0;
 
-                        li.innerHTML = `
-                        <div style="padding-right: 20px;">
-                            <strong>${habit.name}</strong> - 
-                            <span>${habit.description || "No Description Provided"}</span>
-                        </div>`;
-                        listElement.appendChild(li)
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent = `Progress: ${percentage}% (${completedHabits}/${totalHabits})`;
+        }
 
-                        const doneBtn = document.createElement('button');
-                        doneBtn.textContent = 'Done';
-                        doneBtn.onclick = () => alert(`You finisned ${habit.name} for today!`);
-                        li.appendChild(doneBtn);
-                    });
-                }
-                loadHabits()
-                async function createHabit() {
-                const nameInput = document.getElementById('habit-name');
-                const descInput = document.getElementById('habit-desc');
-                
-                // Get the token using our helper function
-                const csrftoken = getCookie('csrftoken');
+        async function createHabit() {
+            const nameInput = document.getElementById('habit-name');
+            const descInput = document.getElementById('habit-desc');
+            const csrftoken = getCookie('csrftoken');
 
-                const response = await fetch('/tracker/habits/', {
+            const response = await fetch('/tracker/habits/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    name: nameInput.value,
+                    description: descInput.value
+                })
+            });
+
+            if (response.ok) {
+                nameInput.value = '';
+                descInput.value = '';
+                await loadHabits();
+            }
+        }
+
+        async function markHabitDone(habitId, clickedButton) {
+            const csrftoken = getCookie('csrftoken');
+            
+            try {
+                const response = await fetch('/tracker/records/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken, // This is the secret handshake! 🤝
+                        'X-CSRFToken': csrftoken,
                     },
                     body: JSON.stringify({
-                        name: nameInput.value,
-                        description: descInput.value
+                        record: habitId,
+                        completed: true
                     })
                 });
 
                 if (response.ok) {
-                    console.log("Habit created successfully!");
-                    nameInput.value = '';
-                    descInput.value = '';
+                    // 1. Visual Feedback
+                    clickedButton.textContent = '✅ Completed';
+                    clickedButton.style.backgroundColor = '#2ecc71';
+                    clickedButton.disabled = true;
 
-                    await loadHabits();
+                    // 2. Confetti Burst! 🎊
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+
+                    // 3. Wait 1.5s then refresh
+                    setTimeout(() => loadHabits(), 1500);
                 } else {
-                    const errorData = await json.response();
-                    console.error("Server says What???", errorData)
+                    alert("Record already exists for today!");
                 }
+            } catch (error) {
+                console.error("Error:", error);
             }
-            </script>
-            <style>
-                body {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background-color: #f4f7f6;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    padding: 40px;
-                }
-                #habit-list {
-                    list-style: none; /* Removes the bullet points */
-                    padding: 0;
-                    width: 100%;
-                    max-width: 400px;
-                }
-                li {
-                background: white;
-                margin-bottom: 15px;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                border-left: 5px solid #4CAF50;
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-                cursor: pointer;
-                display: flex; /* Enables Flexbox */
-                justify-content: space-between; /* Pushes content to opposite ends */
-                align-items: center;
-                    }
+        }
+        window.onload = loadHabits;
+        async function deleteHabit(habitId) {
+            if (!confirm("Are you sure you want to delete this habit? All progress will be lost! 😱")) {
+                return;
+            }
 
-                li:hover {
-                    /* Step 2: Define what happens on hover */
-                    transform: translateY(-5px); /* Moves it up 5 pixels */
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* Deepens the shadow */
-                }
-                button {
-                    background-color: #4CAF50;
-                    color: white;
-                    border: none;
-                    padding: 10px 18px;
-                    border-radius: 25px; /* Makes it a pill shape */
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background 0.3s ease, transform 0.1s;
-                }
+            const csrftoken = getCookie('csrftoken');
 
-                button:hover {
-                    background-color: #45a049;
-                    transform: scale(1.05); /* Slightly grows the button */
+            const response = await fetch(`/tracker/habits/${habitId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrftoken,
                 }
+            });
 
-                button:active {
-                    transform: scale(0.95); /* Shrinks when clicked for a "pushed" feel */
-                }
-            </style>
-        </head>
-        <body>
-            <h1>My Habit Tracker</h1>
-            <ul id="habit-list">
-            </ul>
-            <div id="add-habit-form">
-                <h2>Add a New Habit</h2>
-                <input type="text" placeholder="habit name (e.g , Meditation)" id="habit-name">
-                <input type="text" id="habit-desc" placeholder="Description (e.g, Stretch )">
-                <button onclick="createHabit()">Add Habit</button>
-            </div>
-            {% csrf_token %}
-        </body>
-    </html>
+            if (response.ok) {
+                loadHabits(); // Refresh the list
+            } else {
+                alert("Failed to delete the habit.");
+            }
+        }
+    </script>
+    
+    <style>
+        /* Your CSS stays exactly the same as you had it! */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+        #habit-list { list-style: none; padding: 0; width: 100%; max-width: 400px; }
+        li { background: white; margin-bottom: 15px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #4CAF50; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+        li:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px 18px; border-radius: 25px; font-weight: 600; cursor: pointer; transition: 0.3s; width: 120px; flex-shrink: 0; text-align: center;}
+        button:hover { background-color: #45a049; transform: scale(1.05); }
+        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .habit-card-done { border-left: 5px solid #2ecc71 !important;background-color: #f0fff4 !important; opacity: 0.8;}
+        .btn-completed {background-color: #27ae60 !important;cursor: default;box-shadow: none !important;transform: none !important;}
+        .delete-btn {background-color: transparent; color: #e74c3c; border: 1px solid #e74c3c; width: 40px; margin-left: 10px; display: flex; align-items: center;justify-content: center; padding: 0;margin-left: 10px;font-size: 1.2rem;flex-shrink: 0;}
+        .delete-btn:hover {background-color: #e74c3c; color: white;}
+    </style>
+</head>
+<body>
+    <h1>My Habit Tracker</h1>
+    <div id="progress-container" style="width: 100%; max-width: 400px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span id="progress-text" style="font-weight: bold; color: #2c3e50;">Progress: 0%</span>
+    </div>
+    <div style="background-color: #e0e0e0; border-radius: 10px; height: 15px; width: 100%; overflow: hidden;">
+        <div id="progress-bar" style="background-color: #2ecc71; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+        </div>
+    </div>
+    <ul id="habit-list"></ul>
+    <div id="add-habit-form">
+        <h2>Add a New Habit</h2>
+        <input type="text" placeholder="Habit name" id="habit-name">
+        <input type="text" placeholder="Description" id="habit-desc">
+        <button onclick="createHabit()">Add Habit</button>
+    </div>
+    {% csrf_token %}
+</body>
+</html>
