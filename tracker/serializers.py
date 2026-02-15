@@ -5,9 +5,11 @@ from datetime import date
 class HabitSerializer(serializers.ModelSerializer):
     owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
     is_done_today = serializers.BooleanField(read_only=True)
+    current_streak = serializers.IntegerField(read_only=True)
+    last_7_days = serializers.ListField(child=serializers.BooleanField(),read_only=True)
     class Meta:
         model = HabitModel
-        fields = ['id','owner','name','created','description','is_done_today']
+        fields = ['id','owner','name','created','description','is_done_today', 'current_streak', 'last_7_days']
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=HabitModel.objects.all(),
