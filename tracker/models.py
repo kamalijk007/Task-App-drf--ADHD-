@@ -66,3 +66,11 @@ class DailyRecordModel(models.Model):
 
     def __str__(self):
         return f'{self.record.name} - {self.date}'
+    
+
+class HabitRecord(models.Model):
+    habit = models.ForeignKey(HabitModel, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    owner = models.ForeignKey(User , on_delete=models.CASCADE)
+    class Meta:
+        unique_together = ('habit','date','owner')

@@ -15,7 +15,8 @@
         button { background-color: #4CAF50; color: white; border: none; padding: 10px; border-radius: 25px; font-weight: 600; cursor: pointer; transition: 0.3s; width: 120px; flex-shrink: 0; text-align: center; }
         .delete-btn { background-color: transparent; color: #e74c3c; border: 1px solid #e74c3c; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0; margin-left: 10px; font-size: 1.2rem; flex-shrink: 0; }
         .btn-completed { background-color: #27ae60 !important; cursor: default; }
-        #progress-bar { background-color: #2ecc71; height: 100%; width: 0%; transition: width 0.5s ease; }button:hover { background-color: #45a049; transform: scale(1.05); }
+        #progress-bar { background-color: #2ecc71; height: 100%; width: 0%; transition: width 0.5s ease; }
+        button:hover { background-color: #45a049; transform: scale(1.05); }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
         .habit-card-done { border-left: 5px solid #2ecc71 !important; background: rgba(46, 204, 113, 0.1) !important; }
         #add-habit-form { background: rgba(255, 255, 255, 0.03); padding: 30px; border-radius: 20px; width: 100%; max-width: 500px; margin-top: 40px; border: 1px dashed rgba(255, 255, 255, 0.1); }
@@ -27,25 +28,48 @@
         .heatmap { display: flex; gap: 6px; margin-top: 12px; padding: 4px 0; }
         .dot { width: 12px; height: 12px; border-radius: 4px; background: rgba(255,255,255,0.1); transition: 0.3s; }
         .dot-filled { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+        .dashboard-wrapper { display: flex; width: 100%; max-width: 1200px; gap: 40px; align-items: flex-start; }
+        .main-content { flex: 7; display: flex; flex-direction: column; align-items: center; }
+        .sidebar { flex: 3; position: sticky; top: 40px; }
+        
+        /* 🔥 Heatmap Styles for later! */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <h1>Momentum</h1>
-    <div id="progress-container" style="width: 100%; max-width: 400px; margin-bottom: 20px;">
-    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span id="progress-text" style="font-weight: 800; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Progress: 0%</span>
-    </div>
-    <div style="background-color: #e0e0e0; border-radius: 10px; height: 15px; width: 100%; overflow: hidden;">
-        <div id="progress-bar" style="background-color: #2ecc71; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
-        </div>
-    </div>
-    <ul id="habit-list"></ul>
-    <div id="add-habit-form">
-        <h2>Add a New Habit</h2>
-        <input type="text" placeholder="Habit name" id="habit-name">
-        <input type="text" placeholder="Description" id="habit-desc">
-        <button onclick="createHabit()">Add Habit</button>
-    </div>
-    {% csrf_token %}
-</body>
+    <div class="dashboard-wrapper">
+        
+        <div class="main-content">
+            <h1>Momentum</h1>
+            <ul id="habit-list"></ul>
+        </div> <div class="sidebar">
+            
+            <div id="add-habit-form">
+                <h2>Add a New Habit</h2>
+                {% csrf_token %}
+                <input type="text" placeholder="Habit name" id="habit-name">
+                <input type="text" placeholder="Description" id="habit-desc">
+                <button onclick="createHabit()">Add Habit</button>
+            </div>
+
+            <div class="progress-widget" style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 20px; margin-top: 20px; text-align: center;">
+                <h3 style="margin-bottom: 15px; font-size: 0.9rem; color: #94a3b8;">Daily Goal</h3>
+                <div class="circle-container" style="position: relative; display: inline-block;">
+                    <svg width="120" height="120">
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8" />
+                        <circle id="progress-circle" cx="60" cy="60" r="54" fill="none" stroke="#2ecc71" 
+                                stroke-width="8" stroke-linecap="round" stroke-dasharray="339.29" 
+                                stroke-dashoffset="339.29" transform="rotate(-90 60 60)" />
+                    </svg>
+                    <div id="progress-text-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 800; font-size: 1.2rem;">0%</div>
+                </div>
+            </div>
+
+            <div id="calendar-heatmap" style="background: rgba(255, 255, 255, 0.03); padding: 20px; border-radius: 20px; margin-top: 20px; text-align: center;">
+                <h3 style="margin-bottom: 15px; font-size: 0.9rem; color: #94a3b8;">Consistency</h3>
+                <div class="calendar-grid" id="heatmap-grid">
+                    </div>
+            </div>
+
+        </div> </div> </body>
 </html>
